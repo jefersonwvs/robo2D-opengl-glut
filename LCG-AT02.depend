@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1606572646 source:h:\estudos\6º semestre_03.08.2020 - 15.12.2020 (rae)\módulo 4\laboratório de computação gráfica\unidade ii\códigos\lcg-at02\main.cpp
+	<stdlib.h>
+	<stdio.h>
+	<GL/glut.h>
+	<math.h>
+	"header.h"
+
+1605714290 c:\program files (x86)\codeblocks\glut\include\gl\glut.h
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+
+1606571514 h:\estudos\6º semestre_03.08.2020 - 15.12.2020 (rae)\módulo 4\laboratório de computação gráfica\unidade ii\códigos\lcg-at02\header.h
+
