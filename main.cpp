@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <windows.h>
 #include <GL/glut.h>
 #include <math.h>
 #include "header.h"
@@ -24,7 +25,10 @@ float angle_arm5;
 float angle_obj6;
 float angle_arm7;
 
-int main(int argc, char** argv) {
+int go = 0;
+
+int main(int argc, char** argv)
+{
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(width, height);
@@ -35,6 +39,7 @@ int main(int argc, char** argv) {
 	glutMouseFunc(mouseClick);
 	glutKeyboardFunc(keyboard);
     glutSpecialFunc(specialKeyboard);
+    //glutTimerFunc(0, timer, 0);
 
 	init();
 	glutMainLoop();
@@ -42,8 +47,9 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-void init() {
 
+void init()
+{
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	win = 100;
 
@@ -52,8 +58,15 @@ void init() {
 	}
 	n = 0;
 
-	x_foot = 0;
-	y_foot = 0;
+	P[n] = (Point) malloc(sizeof(Point));
+	if (P[n] == NULL) {
+        printf("Problema de alocação de memória!");
+	} else {
+        x_foot = P[n]->u = 0.0;
+        y_foot = P[n]->v = 0.0;
+        n++;
+	}
+
 	y_arm2 = 60.0;
 	y_arm3 = 36.0;
 
@@ -72,6 +85,7 @@ void init() {
     angle_obj6 = 45.0;
     angle_arm7 = 30.0;
 }
+
 
 void reshape(int width1, int height1)
 {
@@ -93,42 +107,61 @@ void reshape(int width1, int height1)
 
 }
 
+
 void display()
 {
-
+	printf("redesenhei\n");
 	glClear(GL_COLOR_BUFFER_BIT);
-
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	//displayControlPoints();
+
+	drawRobot();
+
+    walkInTheTrajectory();
+
+	glFlush();
+}
+
+void timer(int)
+{
+    glutPostRedisplay();
+    glutTimerFunc(1000, timer, 0);
+}
+
+void drawRobot()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    displayControlPoints();
 
     glTranslated(x_foot, y_foot, 0.0);
 	drawFoot(p, k);
 
 	glTranslated(0.0, 7.5, 0.0);
 	glRotated(angle_arm1, 0.0, 0.0, 1.0);
-    drawArm(b, h);  // braço 1
-
-    drawAxis(d);
-
-    drawLabel(0.0, 0.0, 0.0, 0.20*p, 0.25*k);
+    drawArm(b, h);  // braço 1 (triângulo)
+    drawAxis(d);    // eixo 1 (semicírculo)
+    drawLabel(0.0, 0.20*p, 0.25*k); // rótulo 1 ('–')
 
     glTranslated(0.0, y_arm2, 0.0);
     glRotated(angle_arm2, 0.0, 0.0, 1.0);
-    drawArm(0.7*b, 0.6*h);
-
-    drawAxis(0.7*d);
-
-    drawLabel(0.0, 0.0, 0.0, c, c/3);
-    drawLabel(90.0, 0.0, 0.0, c, c/3);
+    drawArm(0.7*b, 0.6*h);  // braço 2 (triângulo)
+    drawAxis(0.7*d);        // eixo 2 (círculo)
+    /* Desenho do rótulo 2 através de 2 retângulas ortogonais entre si*/
+    drawLabel(0.0, c, c/3);     // 1.a parte: '–'
+    drawLabel(90.0, c, c/3);    // 2.a parte: ' | '
 
     glTranslated(0.0, y_arm3, 0.0);
     glRotated(angle_arm3, 0.0, 0.0, 1.0);
     drawArm(0.5*b, 0.4*h);
-
     drawAxis(0.5*d);
-
-    drawLabel(0.0, 0.0, 0.0, 0.7*c, 0.7*(c/3));
-    drawLabel(90.0, 0.0, 0.0, 0.7*c, 0.7*(c/3));
+    /* Desenho do rótulo 3 através de 2 retângulas ortogonais entre si*/
+    drawLabel(0.0, 0.7*c, 0.7*(c/3));   // 1.a parte: '–'
+    drawLabel(90.0, 0.7*c, 0.7*(c/3));  // 2.a parte: ' | '
 
     glTranslated(0.0, 24.0, 0.0);
     glPushMatrix();
@@ -153,6 +186,8 @@ void display()
 
     drawAxis(0.3*d);
 
+    glFlush();
+    /* Para debugar */
     /*glColor3f(0.0, 0.0, 0.0);
     glBegin(GL_LINES);
         glVertex2d(0.0, 0.0);
@@ -160,22 +195,19 @@ void display()
         glVertex2d(0.0, 0.0);
         glVertex2d(10.0, 0.0);
     glEnd();*/
-
-	glFlush();
 }
-
-
 
 
 /* Desenho do retângulo do pé */
 void drawFoot(double p, double k)
 {
+    glColor3f(1.0, 0.5, 0.0);
     glPushMatrix();
-        glColor3f(1.0, 0.5, 0.0);
         glScaled(p, k, 0.0);
         drawQuad();
     glPopMatrix();
 }
+
 
 void drawQuad()
 {
@@ -185,8 +217,8 @@ void drawQuad()
 
 void drawArm(double b, double h)
 {
+    glColor3f(1.0, 0.5, 1.0);
     glPushMatrix();
-        glColor3f(1.0, 0.5, 1.0);
         glScaled(b, h, 0.0);
         drawTriangle();
     glPopMatrix();
@@ -226,17 +258,16 @@ void drawCircle()
 }
 
 
-void drawLabel(double angle, double x, double y, double p, double k)
+void drawLabel(double angle, double p, double k)
 {
-    /* Desenha o sinal de translação ( – )*/
     glColor3d(0.0, 0.0, 1.0);
     glPushMatrix();
     glRotated(angle, 0.0, 0.0, 1.0);
-        glTranslated(x, y, 0.0);
         glScaled(p, k, 0.0);
         drawQuad();
     glPopMatrix();
 }
+
 
 void drawObjs(double x, double y, double p, double k)
 {
@@ -248,11 +279,13 @@ void drawObjs(double x, double y, double p, double k)
     glPopMatrix();
 }
 
+
 void keyboard(unsigned char key, int x, int y)
 {
-    int mod = 0;
     switch (key) {
-
+        case 27: // ESC
+            clearTrajectory();
+            break;
         case 'a':
             angle_arm1--;
             angle_arm1 = (movementLimitation(-30, 30, angle_arm1) ? angle_arm1 : -30);
@@ -277,12 +310,12 @@ void keyboard(unsigned char key, int x, int y)
 
         case 'w':
             y_arm2--;
-            y_arm2 = (movementLimitation(40, 60, y_arm2) ? y_arm2 : 40);
+            y_arm2 = (movementLimitation(30, 60, y_arm2) ? y_arm2 : 30);
             printf("%f\n", y_arm2);
             break;
         case 'W':
             y_arm2++;
-            y_arm2 = (movementLimitation(40, 60, y_arm2) ? y_arm2 : 60);
+            y_arm2 = (movementLimitation(30, 60, y_arm2) ? y_arm2 : 60);
             printf("%f\n", y_arm2);
             break;
 
@@ -357,29 +390,31 @@ void keyboard(unsigned char key, int x, int y)
     glutPostRedisplay();
 }
 
+
 int movementLimitation(double min, double max, double value)
 {
-    if (min <= value && value <= max)
-        return 1;
-    return 0;
+    return (min <= value && value <= max);
 }
 
 
 void specialKeyboard(int key, int x, int y)
 {
-    int mod;
     switch (key) {
         case GLUT_KEY_DOWN:
             y_foot--;
+            P[0]->v = y_foot;
             break;
         case GLUT_KEY_UP:
             y_foot++;
+            P[0]->v = y_foot;
             break;
         case GLUT_KEY_LEFT:
             x_foot--;
+            P[0]->u = x_foot;
             break;
         case GLUT_KEY_RIGHT:
             x_foot++;
+            P[0]->u = x_foot;
             break;
         default:
             break;
@@ -388,18 +423,22 @@ void specialKeyboard(int key, int x, int y)
 }
 
 
+
+
+
+
+
 /*
 * Procedimento que trata os eventos de mouse.
 */
 void mouseClick(int button, int state, int x, int y)
 {
-    /*if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         setPoint(x, y);
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-        glTranslated(x_robot, x_robot, 0.0);
-        drawFoot();
-    }*/
+        go = 1;
+    }
     glutPostRedisplay();
 }
 
@@ -469,6 +508,7 @@ void displayControlPoints()
 
 void displayBezierCurves(void)
 {
+
     int i;      // índice dos pontos desenhados na tela
     int n2;     // pontos que ainda não foram usados para construir uma curva
     int curve;  // tipo de curva de acordo com quantidade de pontos usados para construí-la
@@ -502,7 +542,6 @@ void displayBezierCurves(void)
                 break;
         }
     }
-
 }
 
 /*
@@ -513,19 +552,25 @@ void bezierCurve1(int i)
 {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glColor3f(0.0f, 0.0f, 1.0f);
+    glColor3f(1.0f, 0.0f, 0.0f);
     glPointSize(1.5f);
 
-    for (float t = 0.0; t <= 1.0; t += 0.001) {
+    for (float t = 0.0; t <= 1.0; t += 0.0005) {
         /* Cálculo da curva C(t) */
-        GLfloat x = (1-t)*(P[i]->u)  +  t*P[i+1]->v;
-        GLfloat y = (1-t)*(P[i]->u)  +  t*P[i+1]->v;
+        GLfloat x = (1-t)*(P[i]->u)  +  t*P[i+1]->u;
+        GLfloat y = (1-t)*(P[i]->v)  +  t*P[i+1]->v;
+
+        P[0]->u = x_foot = x;
+        P[0]->v = y_foot = y;
+        drawRobot();
 
         glBegin(GL_POINTS);
             glVertex2f(x, y);
         glEnd();
+
     }
-    //glFlush();
+
+
 }
 
 /*
@@ -536,19 +581,23 @@ void bezierCurve2(int i)
 {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glColor3f(1.0f, 0.0f, 0.0f);
+    glColor3f(0.0f, 1.0f, 0.0f);
     glPointSize(1.5f);
 
-    for (float t = 0.0; t <= 1.0; t += 0.001) {
+    for (float t = 0.0; t <= 1.0; t += 0.0005) {
         /* Cálculo da curva C(t) */
         GLfloat x = pow(1-t, 2)*(P[i]->u)  +  2*t*(1-t)*P[i+1]->u  +  pow(t, 2)*P[i+2]->u;
         GLfloat y = pow(1-t, 2)*(P[i]->v)  +  2*t*(1-t)*P[i+1]->v  +  pow(t, 2)*P[i+2]->v;
 
+        x_foot = x;
+        y_foot = y;
+        drawRobot();
+
         glBegin(GL_POINTS);
             glVertex2f(x, y);
         glEnd();
+
     }
-    //glFlush();
 }
 
 /*
@@ -562,13 +611,38 @@ void bezierCurve3(int i)
     glColor3f(0.0f, 0.0f, 1.0f);
     glPointSize(1.5f);
 
-    for (float t = 0.0; t <= 1.0; t += 0.001) {
+    for (float t = 0.0; t <= 1.0; t += 0.0005) {
         /* Cálculo da curva C(t)*/
         GLfloat x = pow(1-t, 3)*(P[i]->u)  +  3*t*pow(1-t, 2)*P[i+1]->u  +  3*pow(t, 2)*(1-t)*P[i+2]->u  +  pow(t, 3)*P[i+3]->u;
         GLfloat y = pow(1-t, 3)*(P[i]->v)  +  3*t*pow(1-t, 2)*P[i+1]->v  +  3*pow(t, 2)*(1-t)*P[i+2]->v  +  pow(t, 3)*P[i+3]->v;
 
+        x_foot = x;
+        y_foot = y;
+        drawRobot();
+
         glBegin(GL_POINTS);
             glVertex2f(x, y);
         glEnd();
+
     }
+}
+
+void walkInTheTrajectory()
+{
+    if (go) {
+        displayBezierCurves();
+        clearTrajectory();
+        go = 0;
+    }
+}
+
+void clearTrajectory()
+{
+    for (int i = 1; i < n; i++) {
+        free(P[i]);
+        P[i] = NULL;
+    }
+    P[0]->u = x_foot;
+    P[0]->v = y_foot;
+    n = 1;
 }
