@@ -1,45 +1,30 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <windows.h>
 #include <GL/glut.h>
 #include <math.h>
 #include "header.h"
 
-int x_foot;
-int y_foot;
-float y_arm2;
-float y_arm3;
-
-double p;
-double k;
-double d;
-double b;
-double h;
-double c;
-
-float angle_arm1;
-float angle_arm2;
-float angle_arm3;
-float angle_obj4;
-float angle_arm5;
-float angle_obj6;
-float angle_arm7;
-
-int go = 0;
-
+/*
+ * Função principal: ponto de partida do programa.
+ * Parâmetros:
+ *  - argc: número de argumentos
+ *  - argv: matriz de caracteres (vetor de strings) contendo argumentos
+ * Retorno:
+ *  - 0: programa finalizado com sucesso
+ *  - demais valores: programa finalizado com algum erro
+ */
 int main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(width, height);
-	glutInitWindowPosition(500, 0);
+	glutInitWindowPosition(621, 0);
 	glutCreateWindow("LCG - Atividade 02 - Robo");
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutMouseFunc(mouseClick);
 	glutKeyboardFunc(keyboard);
     glutSpecialFunc(specialKeyboard);
-    //glutTimerFunc(0, timer, 0);
 
 	init();
 	glutMainLoop();
@@ -48,12 +33,16 @@ int main(int argc, char** argv)
 }
 
 
+/*
+ * Procedimento para fazer as inicializações pertinentes. Faz parte das boas práticas de programação.
+ * Através dele variáveis são inicializadas, alocações de memória são feitas etc..
+ */
 void init()
 {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	win = 100;
 
 	for (int i = 0; i < SIZE; i++) {
+        /* inicilização do vetor de pontos de controle para a trajetória */
         P[i] = NULL;
 	}
 	n = 0;
@@ -62,21 +51,17 @@ void init()
 	if (P[n] == NULL) {
         printf("Problema de alocação de memória!");
 	} else {
+	    /* estabelecendo o ponto de origem do robô para qualquer movimentação */
         x_foot = P[n]->u = 0.0;
         y_foot = P[n]->v = 0.0;
         n++;
 	}
 
+	win = 100;
+
+    /* posições iniciais dos elementos do robô */
 	y_arm2 = 60.0;
 	y_arm3 = 36.0;
-
-	p = 6.0;
-	k = 1.5;
-	d = 2.5;
-    b = 2.5;
-    h = 6.0;
-    c = 0.625;
-
     angle_arm1 = 0.0;
     angle_arm2 = -100.0;
     angle_arm3 = 45.0;
@@ -87,8 +72,15 @@ void init()
 }
 
 
+/*
+ * Procedimento que redimensiona a Viewport e a Projeção Ortográfica, para dispor os desenhos.
+ * Parâmetros:
+ *  - width1: nova largura da window
+ *  - height1: nova altura da window
+ */
 void reshape(int width1, int height1)
 {
+    /* guardando nas variáveis globais, para fazer a transformada de viewport */
     width = width1;
     height = height1;
 
@@ -104,32 +96,65 @@ void reshape(int width1, int height1)
 	} else {
         gluOrtho2D(-win * width/height, win * width/height, -win, win);
 	}
-
 }
 
 
+/*
+ * Procedimento que atualiza continuamente os desenhos na Projeção Ortográfica.
+ */
 void display()
 {
-	printf("redesenhei\n");
 	glClear(GL_COLOR_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	//displayControlPoints();
+    //displayInfo(); // mostra informações de como usar algumas funcionalidades
+	displayControlPoints(); // mostra pontos de controle que serão usados para criar a trajetória
+	drawRobot(); // desenha o robô
 
-	drawRobot();
-
-    walkInTheTrajectory();
+    walkInTheTrajectory(); // realiza a trajetória se houver uma definida
 
 	glFlush();
 }
 
-void timer(int)
+
+/*
+ * Procedimento que apresenta algumas opções de controle do robô.
+ */
+void displayInfo()
 {
-    glutPostRedisplay();
-    glutTimerFunc(1000, timer, 0);
+    glColor3f(0.0, 1.0, 0.0);
+    char text1[60] = "MOUSE (LEFT BUTTON) - Insere um ponto de controle";
+    char text2[60] = "MOUSE (RIGHT BUTTON) - Caminha na trajetória";
+    char text3[20] = "ESC - Limpa a tela";
+    displayText(-95, 95, text1);
+    displayText(-95, 90, text2);
+    displayText(-95, 85, text3);
 }
 
+
+/*
+ * Procedimento que apresenta uma informação textual na tela.
+ * Parâmetros:
+ *  - x: posição do texto em relação ao eixo x
+ *  - y: posição do texto em relação ao eixo y
+ *  - text: texto que será escrito
+ */
+void displayText(GLsizei x, GLsizei y, char* text)
+{
+    glPushMatrix();
+        glRasterPos2f(x, y);
+        int length = strlen(text);
+        for (int i = 0; i < length; i++) {
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
+        }
+	glPopMatrix();
+}
+
+
+/*
+ * Procedimento que desenha o robô.
+ */
 void drawRobot()
 {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -138,94 +163,125 @@ void drawRobot()
 
     displayControlPoints();
 
+    /* variáveis para dimensionar adequadamente os elementos do robô */
+    double p = 6.0;
+	double k = 1.5;
+	double d = 2.5;
+    double b = 2.5;
+    double h = 6.0;
+    double c = 0.625;
+
+    /* Estabelece o centro da base do robô como centro da projeção.
+    Usando para movimentar o robô na tela, de todas as formas, e em todas as direções. */
     glTranslated(x_foot, y_foot, 0.0);
-	drawFoot(p, k);
+	drawFoot(p, k);                         // pé/base (retângulo)
 
+	/* Translaciona o centro para desenhar o braço 1 exatamente sobre o pé. */
 	glTranslated(0.0, 7.5, 0.0);
-	glRotated(angle_arm1, 0.0, 0.0, 1.0);
-    drawArm(b, h);  // braço 1 (triângulo)
-    drawAxis(d);    // eixo 1 (semicírculo)
-    drawLabel(0.0, 0.20*p, 0.25*k); // rótulo 1 ('–')
+	glRotated(angle_arm1, 0.0, 0.0, 1.0);   // define a rotação do braço 1
+    drawArm(b, h);                          // braço 1 (triângulo)
+    drawAxis(d);                            // eixo 1 (semicírculo)
+    drawLabel(0.0, 0.20*p, 0.25*k);         // rótulo 1 ('–')
 
+    /* Translaciona pela segunda vez para desenhar o braço 2 a partir
+    da ponta do braço 1. */
     glTranslated(0.0, y_arm2, 0.0);
-    glRotated(angle_arm2, 0.0, 0.0, 1.0);
-    drawArm(0.7*b, 0.6*h);  // braço 2 (triângulo)
-    drawAxis(0.7*d);        // eixo 2 (círculo)
-    /* Desenho do rótulo 2 através de 2 retângulas ortogonais entre si*/
-    drawLabel(0.0, c, c/3);     // 1.a parte: '–'
-    drawLabel(90.0, c, c/3);    // 2.a parte: ' | '
+    glRotated(angle_arm2, 0.0, 0.0, 1.0);   // define a rotação do braço 2
+    drawArm(0.7*b, 0.6*h);                  // braço 2 (triângulo)
+    drawAxis(0.7*d);                        // eixo 2 (círculo)
+    /* Desenho do rótulo 2 através de 2 retângulas ortogonais entre si */
+    drawLabel(0.0, c, c/3);                 // 1.a parte: '–'
+    drawLabel(90.0, c, c/3);                // 2.a parte: ' | '
 
+    /* Translaciona pela terceira vez para desenhar o braço 3 a partir
+    da ponta do braço 2. */
     glTranslated(0.0, y_arm3, 0.0);
     glRotated(angle_arm3, 0.0, 0.0, 1.0);
     drawArm(0.5*b, 0.4*h);
     drawAxis(0.5*d);
-    /* Desenho do rótulo 3 através de 2 retângulas ortogonais entre si*/
-    drawLabel(0.0, 0.7*c, 0.7*(c/3));   // 1.a parte: '–'
-    drawLabel(90.0, 0.7*c, 0.7*(c/3));  // 2.a parte: ' | '
+    /* Desenho do rótulo 3 através de 2 retângulas ortogonais entre si */
+    drawLabel(0.0, 0.7*c, 0.7*(c/3));       // 1.a parte: '–'
+    drawLabel(90.0, 0.7*c, 0.7*(c/3));      // 2.a parte: ' | '
 
+    /* Translaciona pela quarta vez para desenhar a mão a partir
+    da ponta do braço 3. */
     glTranslated(0.0, 24.0, 0.0);
+
+    /* Desenho da parte superior da mão.*/
     glPushMatrix();
         glRotated(angle_obj4, 0.0, 0.0, 1.0);
-        drawObjs(7.5, 0.0, 0.2*p, 0.3*k);
+        drawObjs(7.5, 0.2*p, 0.3*k);
         glTranslated(12.0, 0.0, 0.0);
-        glRotated(-angle_obj4, 0.0, 0.0, 1.0); // !!!
+        glRotated(-angle_obj4, 0.0, 0.0, 1.0);
         glRotated(angle_arm5, 0.0, 0.0, 1.0);
         drawArm(0.2*b, 0.2*h);
         drawAxis(0.2*d);
     glPopMatrix();
 
+    /* Desenho da parte inferior da mão. */
     glPushMatrix();
         glRotated(angle_obj6, 0.0, 0.0, 1.0);
-        drawObjs(7.5, 0.0, 0.2*p, 0.3*k);
+        drawObjs(7.5, 0.2*p, 0.3*k);
         glTranslated(12.0, 0.0, 0.0);
-        glRotated(-angle_obj6, 0.0, 0.0, 1.0); // !!!
+        glRotated(-angle_obj6, 0.0, 0.0, 1.0);
         glRotated(angle_arm7, 0.0, 0.0, 1.0);
         drawArm(0.2*b, 0.2*h);
         drawAxis(0.2*d);
     glPopMatrix();
 
-    drawAxis(0.3*d);
+    drawAxis(0.3*d);                        // eixo 3
+
+    //displayInfo();
 
     glFlush();
-    /* Para debugar */
-    /*glColor3f(0.0, 0.0, 0.0);
-    glBegin(GL_LINES);
-        glVertex2d(0.0, 0.0);
-        glVertex2d(0.0, 20.0);
-        glVertex2d(0.0, 0.0);
-        glVertex2d(10.0, 0.0);
-    glEnd();*/
 }
 
 
-/* Desenho do retângulo do pé */
+/*
+ * Procedimento que desenha o retângulo do pé/base do robô, com dimensões modificadas através da escala aplicada.
+ * Agumentos:
+ *  - p: escala aplicada na largura
+ *  - k: escala aplicada na altura
+ */
 void drawFoot(double p, double k)
 {
     glColor3f(1.0, 0.5, 0.0);
     glPushMatrix();
         glScaled(p, k, 0.0);
-        drawQuad();
+        quad();
     glPopMatrix();
 }
 
 
-void drawQuad()
+/*
+ * Procedimento que desenha a primitiva quadrilátero.
+ */
+void quad()
 {
     glRectf(-5.0, -5.0, 5.0, 5.0);
 }
 
 
+/*
+ * Procedimento que desenha os triângulos dos braços.
+ * Parâmetros:
+ *  - b: escala aplicada na base do triângulo
+ *  - h: escala aplicada na altura do triângulo
+ */
 void drawArm(double b, double h)
 {
     glColor3f(1.0, 0.5, 1.0);
     glPushMatrix();
         glScaled(b, h, 0.0);
-        drawTriangle();
+        triangle();
     glPopMatrix();
 }
 
 
-void drawTriangle()
+/*
+ * Procedimento que desenha a primitiva triângulo.
+ */
+void triangle()
 {
     glBegin(GL_TRIANGLES);
         glVertex2f(-5.0, 0.0);
@@ -235,17 +291,25 @@ void drawTriangle()
 }
 
 
+/*
+ * Procedimento que desenha os círculos dos eixos.
+ * Parâmetro:
+ *  - d: escala aplicada no diâmetro do círculo
+ */
 void drawAxis(double d)
 {
     glColor3f(1.0, 0.5, 0.0);
     glPushMatrix();
         glScaled(d, d, 0.0);
-        drawCircle();
+        circle();
     glPopMatrix();
 }
 
 
-void drawCircle()
+/*
+ * Procedimento que desenha a primitiva círculo.
+ */
+void circle()
 {
     glBegin(GL_POLYGON);
         for (int i = 0; i < 360; i++) {
@@ -257,29 +321,49 @@ void drawCircle()
     glEnd();
 }
 
-
+/*
+ * Procedimento que desenha as etiquetas que indicam as movimentações.
+ * Parâmetros:
+ *  - angle: ângulo de rotação temporária
+ *  - p: escala aplicada na largura
+ *  - k: escala aplicada na altura
+ */
 void drawLabel(double angle, double p, double k)
 {
     glColor3d(0.0, 0.0, 1.0);
     glPushMatrix();
-    glRotated(angle, 0.0, 0.0, 1.0);
+        glRotated(angle, 0.0, 0.0, 1.0);
         glScaled(p, k, 0.0);
-        drawQuad();
+        quad();
     glPopMatrix();
 }
 
 
-void drawObjs(double x, double y, double p, double k)
+/*
+ * Procedimemto que desenha as partes retangulares das mãos do robô.
+ * Parâmetros:
+ *  - x: valor de translação temporária
+ *  - p: escala aplicada na largura
+ *  - k: escala aplicada na altura
+ */
+void drawObjs(double x, double p, double k)
 {
     glColor3f(1.0, 0.5, 1.0);
     glPushMatrix();
-        glTranslated(x, y, 0.0);
+        glTranslated(x, 0.0, 0.0);
         glScaled(p, k, 0.0);
-        drawQuad();
+        quad();
     glPopMatrix();
 }
 
 
+/*
+ * Procedimento que trata os eventos das teclas genéricas (letras, números etc) do teclado.
+ * Parâmetros:
+ *  - key: valor ASC da tecla pressionada
+ *  - x: posição do cursor em relação ao eixo x no momento do disparo do evento
+ *  - y: posição do cursor em relação ao eixo y no momento do disparo do evento
+ */
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key) {
@@ -384,6 +468,15 @@ void keyboard(unsigned char key, int x, int y)
             angle_arm7 = (movementLimitation(10, 30, angle_arm7) ? angle_arm7 : 10);
             printf("%f\n", angle_arm7);
             break;
+
+        case 'p':
+            P[0]->u = ++x_foot;
+            P[0]->v = ++y_foot;
+            break;
+        case 'P':
+            P[0]->u = --x_foot;
+            P[0]->v = --y_foot;
+            break;
         default:
             break;
     }
@@ -391,12 +484,29 @@ void keyboard(unsigned char key, int x, int y)
 }
 
 
+/*
+ * Função que avalia a possibilidade de movimentação (translação e rotação) de um parte do robô.
+ * Parâmetros:
+ *  - min: menor valor em que uma dada movimentação pode acontecer
+ *  - max: maior valor em que uma dada movimentação pode acontecer
+ *  - value: valor da movimentação
+ * Retorno:
+ *  - 0: movimento não está dentro dos limites
+ *  - 1: movimento está dentro dos limites
+ */
 int movementLimitation(double min, double max, double value)
 {
     return (min <= value && value <= max);
 }
 
 
+/*
+ * Procedimento que trata os eventos das teclas especiais (setas, F1, F2 etc) do teclado.
+ * Parâmetros:
+ *  - key: valor ASC da tecla pressionada
+ *  - x: posição do cursor em relação ao eixo x no momento do disparo do evento
+ *  - y: posição do cursor em relação ao eixo y no momento do disparo do evento
+ */
 void specialKeyboard(int key, int x, int y)
 {
     switch (key) {
@@ -423,14 +533,14 @@ void specialKeyboard(int key, int x, int y)
 }
 
 
-
-
-
-
-
 /*
-* Procedimento que trata os eventos de mouse.
-*/
+ * Procedimento que trata os eventos de mouse.
+ * Parâmetro:
+ *  - button: botão pressionado
+ *  - state: estado que dispara o evento
+ *  - x: posição do cursor em relação ao eixo x no momento do disparo do evento
+ *  - y: posição do cursor em relação ao eixo y no momento do disparo do evento
+ */
 void mouseClick(int button, int state, int x, int y)
 {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
@@ -443,17 +553,20 @@ void mouseClick(int button, int state, int x, int y)
 }
 
 /*
-* Procedimento que insere um ponto na coordenada (x,y).
-*/
+ * Procedimento que insere um ponto na coordenada de viewport (x,y).
+ * Parâmetros:
+ *  - x: posição do cursor em relação ao eixo x no momento do disparo do evento
+ *  - y: posição do cursor em relação ao eixo y no momento do disparo do evento
+ */
 void setPoint(int x, int y)
 {
     if (n < SIZE) {
-    /* Condição para guardar apenas a quantidade de pontos suportada pelo vetor*/
+        /* Condição para guardar apenas a quantidade de pontos suportada pelo vetor */
         P[n] = (Point) malloc(sizeof(Point));
         if (P[n] != NULL) {
             P[n]->u = transformX(x);
-            P[n]->v = transformY(y);    // transformando da coordenada de viewport para a coordenada da projeção ortográfica
-            printf("P%02d = (%f, %f)\n", n, P[n]->u, P[n]->v);
+            P[n]->v = transformY(y);
+            //printf("P%02d = (%f, %f)\n", n, P[n]->u, P[n]->v);
             n++;
         } else {
             printf("Problema de memória!");
@@ -465,7 +578,13 @@ void setPoint(int x, int y)
     }
 }
 
-
+/*
+ * Função que transforma a coordenada x.
+ * Parâmetro:
+ *  - x: coordenada de viewport
+ * Retorno:
+ *  - u: coordenada de projeção ortográfica
+ */
 double transformX(int x)
 {
     double u1 = -win;
@@ -479,6 +598,13 @@ double transformX(int x)
 }
 
 
+/*
+ * Função que transforma a coordenada y.
+ * Parâmetro:
+ *  - y: coordenada de viewport
+ * Retorno:
+ *  - v: coordenada de projeção ortográfica
+ */
 double transformY(int y)
 {
     double v1 = -win;
@@ -492,21 +618,25 @@ double transformY(int y)
 }
 
 
+/*
+ * Procedimento que mostra todos os pontos de controle na tela.
+ */
 void displayControlPoints()
 {
     glPointSize(7.5f);
     glColor3f(0.0f, 0.0f, 0.0f);
-
     for (int i = 0; i < n; i++) {
-    /* Desenho e rotulagem dos n pontos de controle */
+        /* Desenho e rotulagem dos n pontos de controle */
         glBegin(GL_POINTS);
             glVertex2f(P[i]->u, P[i]->v);
         glEnd();
     }
 }
 
-
-void displayBezierCurves(void)
+/*
+ * Procedimento que mostra as Curvas de Bézier na tela.
+ */
+void displayBezierCurves()
 {
 
     int i;      // índice dos pontos desenhados na tela
@@ -545,9 +675,10 @@ void displayBezierCurves(void)
 }
 
 /*
-* Procedimento que desenha uma curva do tipo 1 (cor branca), isto é, uma reta.
-* P[i]: ponto de origem da reta.
-*/
+ * Procedimento que desenha uma curva do tipo 1 (cor branca), isto é, uma reta.
+ * Parâmetros:
+ *  - i: índice do ponto de origem da curva.
+ */
 void bezierCurve1(int i)
 {
     glMatrixMode(GL_MODELVIEW);
@@ -563,20 +694,14 @@ void bezierCurve1(int i)
         P[0]->u = x_foot = x;
         P[0]->v = y_foot = y;
         drawRobot();
-
-        glBegin(GL_POINTS);
-            glVertex2f(x, y);
-        glEnd();
-
     }
-
-
 }
 
 /*
-* Procedimento que desenha uma curva do tipo 2 (cor vermelha), curva com três pontos de controle.
-* P[i]: ponto de origem da curva.
-*/
+ * Procedimento que desenha uma curva do tipo 2 (cor vermelha), curva com três pontos de controle.
+ * Parâmetro:
+ *  - i: índice do ponto de origem da curva
+ */
 void bezierCurve2(int i)
 {
     glMatrixMode(GL_MODELVIEW);
@@ -592,18 +717,14 @@ void bezierCurve2(int i)
         x_foot = x;
         y_foot = y;
         drawRobot();
-
-        glBegin(GL_POINTS);
-            glVertex2f(x, y);
-        glEnd();
-
     }
 }
 
 /*
-* Procedimento que desenha uma curva do tipo 3 (cor azul), curva com quatro pontos de controle.
-* P[i]: ponto de origem da curva.
-*/
+ * Procedimento que desenha uma curva do tipo 3 (cor azul), curva com quatro pontos de controle.
+ * Parâmetro:
+ *  - i: índice do ponto de origem da curva
+ */
 void bezierCurve3(int i)
 {
     glMatrixMode(GL_MODELVIEW);
@@ -619,23 +740,24 @@ void bezierCurve3(int i)
         x_foot = x;
         y_foot = y;
         drawRobot();
-
-        glBegin(GL_POINTS);
-            glVertex2f(x, y);
-        glEnd();
-
     }
 }
 
+/*
+ * Procedimento que faz o robô caminhar na trajetória configurada.
+ */
 void walkInTheTrajectory()
 {
-    if (go) {
+    if (go) { // se o "botão" go estiver ligado
         displayBezierCurves();
-        clearTrajectory();
-        go = 0;
+        clearTrajectory();  // limpa a trajetória velha
+        go = 0; // ...desligando
     }
 }
 
+/*
+ * Procedimento que limpa uma trajetória depois de percorrida.
+ */
 void clearTrajectory()
 {
     for (int i = 1; i < n; i++) {

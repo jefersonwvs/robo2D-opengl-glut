@@ -1,0 +1,35 @@
+Botão esquerdo do mouse: insere um ponto de controle para calcular uma trajetória
+Botão direito do mouse: faz o robô caminhar na trajetória
+Tecla ESC: limpa uma trajetória
+
+→ avança na horizontal
+← recua na horizontal
+↑ avança na vertical
+↓ recua na vertical
+p avança diagonal
+shit+p recua diagonal
+
+braço 1		a rotação -
+		shit+a rotação +
+
+braço 2		s rotação -
+		shit+s rotação +
+		w translação desce
+		shit+w translação sobea
+
+braço 3		d rotação -
+		shit+d rotação +
+		e translação desce
+		shit+e translação sobea
+
+obj 4		f rotação -
+		shit+f rotação +
+
+obj 5		g rotação -
+		shit+g rotação +
+
+obj 6		h rotação -
+		shit+h rotação +
+
+obj 7		j rotação -
+		shift+j rotação +
