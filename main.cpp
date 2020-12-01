@@ -1,3 +1,18 @@
+/*
+ * Universidade Federal da Grande Dourados - UFGD
+ * Faculdade de Ciências Exatas e Tecnologia - FACET
+ * Curso de Bacharelado em Sistemas de Informação - BSI
+ *
+ * Disciplina: LABORATÓRIO DE COMPUTAÇÃO GRÁFICA - LCG
+ * Prof.: Adailton José Alves da Cruz
+ * Período: 2020.05 - Módulo IV - RAE
+ *
+ * Atividade 02: desenvolvimento de um robô capaz de fazer movimentos simples,
+ *               tais como: translações em linha reta, em curva e rotações.
+ *
+ * Desenvolvido por: Jeferson Willian Vieira Silva.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <GL/glut.h>
